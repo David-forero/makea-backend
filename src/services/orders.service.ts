@@ -1,11 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma.service';
 import Stripe from 'stripe';
-import { runInThisContext } from 'vm';
+import { buffer } from 'micro';
 
 @Injectable()
 export class OrdersService {
   private stripe;
+  endpointSecret = process.env.STRIPE_SIGNING_SECRET;
 
   constructor(private prisma: PrismaService) {
     this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
@@ -66,4 +67,32 @@ export class OrdersService {
 
     return session
   }
+
+
+  async hooksStripe(body, headers) {
+    const requestBuffer = await buffer(body);
+    const payload = requestBuffer.toString();
+    const sig = headers['stripe-signature'];
+    console.log(headers);
+    
+    let event;
+
+    //Obtengo mis eventos del webhook
+    try {
+        event = this.stripe.webhooks.constructEvent(payload, sig, this.endpointSecret)
+    } catch (err) {
+        console.log("ERROR", err.message);
+    }
+
+    //Cuando el pago fue sastifactorio se ejecuta el evento ✅
+    if (event.type === 'checkout.session.completed') {
+        const session = event.data.object;
+    console.log('lets go!');
+      
+        //guardando la orden...
+        
+    }
+  }
+
+
 }
