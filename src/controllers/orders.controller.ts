@@ -8,7 +8,18 @@ export class OrdersController {
   @Post('/create-checkout-session')
   async createOrder(@Res() res, @Body() body) {
     const order = await this.orderService.checkOutWithStripe(body);
+    
+    return res.status(HttpStatus.OK).json({
+        data: order,
+        status: 200,
+        message: 'Success'
+    })
+  }
 
+  @Post('/getorder/:userId')
+  async getOrdersByUser(@Res() res, @Body() body) {
+    const order = await this.orderService.checkOutWithStripe(body);
+    
     return res.status(HttpStatus.OK).json({
         data: order,
         status: 200,
@@ -17,8 +28,9 @@ export class OrdersController {
   }
 
   @Post('/webhook')
-  async webhookStripe(@Res() res, @Body() body, @Headers() headers) {
-    const order = await this.orderService.hooksStripe(body, headers);
+  async webhookStripe(@Res() res, @Body() body, @Headers('stripe-signature') header) {
+    
+    const order = await this.orderService.hooksStripe(body, header);
 
     return res.status(HttpStatus.OK).json({
         data: order,

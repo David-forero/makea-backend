@@ -29,6 +29,8 @@ export class OrdersService {
       },
     }));
 
+   
+
     const session = await this.stripe.checkout.sessions.create({
         payment_method_types: ['card'],
         shipping_options: [
@@ -63,17 +65,29 @@ export class OrdersService {
             email: body.email,
             images: JSON.stringify(body.items.map(item => item.image))
         }
-    })
+    });
+
+    
+
+    const setupIntent = await this.stripe.setupIntents.create({
+      customer: session?.data?.id,
+      payment_method_types: ['bancontact', 'card', 'ideal'],
+    });
+
+    session.client_secret = setupIntent
 
     return session
   }
 
 
-  async hooksStripe(body, headers) {
-    const requestBuffer = await buffer(body);
-    const payload = requestBuffer.toString();
-    const sig = headers['stripe-signature'];
-    console.log(headers);
+  async hooksStripe(body, header) {
+    // const requestBuffer = await buffer(body);
+    const payload = JSON.stringify(body, null, 2);
+
+    const sig = header;
+
+    console.log('🧐',body);
+    
     
     let event;
 
@@ -84,14 +98,10 @@ export class OrdersService {
         console.log("ERROR", err.message);
     }
 
-    //Cuando el pago fue sastifactorio se ejecuta el evento ✅
-    if (event.type === 'checkout.session.completed') {
-        const session = event.data.object;
-    console.log('lets go!');
-      
-        //guardando la orden...
-        
-    }
+    // const saveOrder = await await this.prisma.orders.create({
+    //   data: { amount: body.amount, amountShipping: body.amountShipping, id: body.id, images: },
+    // });
+    // return saveOrder
   }
 
 
