@@ -8,6 +8,8 @@ export class FurnitureService {
   async getFurnitures()  
   {    
       const result = await this.prisma.furniture.findMany()
+      console.log('Se consulto muebles');
+      
       return result;
   }
 
