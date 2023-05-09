@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Headers, HttpStatus, Post, Res } from '@nestjs/common';
+import { Body, Controller, Get, Headers, HttpStatus, Param, Post, Res } from '@nestjs/common';
 import { OrdersService } from 'src/services';
 
 @Controller('')
@@ -16,9 +16,9 @@ export class OrdersController {
     })
   }
 
-  @Post('/getorder/:userId')
-  async getOrdersByUser(@Res() res, @Body() body) {
-    const order = await this.orderService.checkOutWithStripe(body);
+  @Get('/getorder/:userId')
+  async getOrdersByUser(@Res() res, @Param('userId') userId: string) {
+    const order = await this.orderService.getOrdersUser(userId);
     
     return res.status(HttpStatus.OK).json({
         data: order,

@@ -101,7 +101,6 @@ export class OrdersService {
     if (event.type === 'checkout.session.completed') {
       console.log('orden completado, guardando orden...');
       const session = event.data.object;
-      console.log('📊', session);
           
           const user = await this.prisma.user.findUnique({
             where:{
@@ -114,13 +113,24 @@ export class OrdersService {
 
           const saveOrder = await this.prisma.orders.create({
           data: { 
-            amount: session.amount_total, 
-            amountShipping: session.total_details.amount_shipping, 
+            amount: session.amount_total / 100, 
+            amountShipping: session.total_details.amount_shipping / 100, 
             userId: user.id,
             images: JSON.parse(session.metadata.images)},
         });
         return saveOrder
     }
     
+  }
+
+
+  async getOrdersUser(userId: string){
+    console.log('👉️',userId);
+    
+    const order = await this.prisma.orders.findMany({
+      where: {userId}
+    })
+
+    return order
   }
 }
