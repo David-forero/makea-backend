@@ -16,7 +16,7 @@ export class OrdersService {
 
   async checkOutWithStripe(body: any): Promise<any> {
     console.log(body);
-    
+
     const transformedItems = body.items.map((item) => ({
       quantity: 1,
       price_data: {
@@ -66,13 +66,11 @@ export class OrdersService {
       },
     });
 
-    if (body.movil) {
-      const setupIntent = await this.stripe.setupIntents.create({
-        customer: session?.data?.id,
-        payment_method_types: ['bancontact', 'card', 'ideal'],
-      });
-      session.client_secret = setupIntent;
-    }
+    const setupIntent = await this.stripe.setupIntents.create({
+      customer: session?.data?.id,
+      payment_method_types: ['bancontact', 'card', 'ideal'],
+    });
+    session.client_secret = setupIntent;
 
     return session;
   }
@@ -83,7 +81,7 @@ export class OrdersService {
 
     const header2 = this.stripe.webhooks.generateTestHeaderString({
       payload: payload,
-      secret: this.endpointSecret
+      secret: this.endpointSecret,
     });
 
     let event;
@@ -101,36 +99,34 @@ export class OrdersService {
     if (event.type === 'checkout.session.completed') {
       console.log('orden completado, guardando orden...');
       const session = event.data.object;
-          
-          const user = await this.prisma.user.findUnique({
-            where:{
-              email: session.metadata.email
-            }
-          }) 
 
-          console.log('🔎 user', user);
-          
+      const user = await this.prisma.user.findUnique({
+        where: {
+          email: session.metadata.email,
+        },
+      });
 
-          const saveOrder = await this.prisma.orders.create({
-          data: { 
-            amount: session.amount_total / 100, 
-            amountShipping: session.total_details.amount_shipping / 100, 
-            userId: user.id,
-            images: JSON.parse(session.metadata.images)},
-        });
-        return saveOrder
+      console.log('🔎 user', user);
+
+      const saveOrder = await this.prisma.orders.create({
+        data: {
+          amount: session.amount_total / 100,
+          amountShipping: session.total_details.amount_shipping / 100,
+          userId: user.id,
+          images: JSON.parse(session.metadata.images),
+        },
+      });
+      return saveOrder;
     }
-    
   }
 
+  async getOrdersUser(userId: string) {
+    console.log('👉️', userId);
 
-  async getOrdersUser(userId: string){
-    console.log('👉️',userId);
-    
     const order = await this.prisma.orders.findMany({
-      where: {userId}
-    })
+      where: { userId },
+    });
 
-    return order
+    return order;
   }
 }
