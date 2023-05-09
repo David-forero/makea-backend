@@ -21,8 +21,8 @@ model User {
 
 model Orders {
   id             String   @id @default(auto()) @map("_id") @db.ObjectId
-  amount         Int
-  amountShipping Int
+  amount         Float
+  amountShipping Float
   userId         String   @db.ObjectId
   images         String[]
   createdAt      DateTime @default(now())

@@ -67,7 +67,6 @@ export class UsersController {
     }
 
     if (!passwordValid) {
-      console.log(passwordValid);
       return res.status(HttpStatus.NOT_FOUND).json({
         status: 301,
         message: 'Clave invalida',
@@ -81,6 +80,7 @@ export class UsersController {
       });
     }
 
+    return;
    
   }
 }
