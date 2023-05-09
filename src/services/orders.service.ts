@@ -15,6 +15,7 @@ export class OrdersService {
   }
 
   async checkOutWithStripe(body: any): Promise<any> {
+    console.log(body);
     
     const transformedItems = body.items.map((item) => ({
       quantity: 1,
@@ -29,80 +30,97 @@ export class OrdersService {
       },
     }));
 
-   
-
     const session = await this.stripe.checkout.sessions.create({
-        payment_method_types: ['card'],
-        shipping_options: [
-            {
-                shipping_rate_data: {
-                  type: 'fixed_amount',
-                  fixed_amount: {amount: 0, currency: 'usd'},
-                  display_name: 'Delivery Gratis',
-                  delivery_estimate: {
-                    minimum: {unit: 'business_day', value: 5},
-                    maximum: {unit: 'business_day', value: 7},
-                  },
-                },
-              },
-              {
-                shipping_rate_data: {
-                  type: 'fixed_amount',
-                  fixed_amount: {amount: 1500, currency: 'usd'},
-                  display_name: 'Delivery Normal',
-                  delivery_estimate: {
-                    minimum: {unit: 'business_day', value: 1},
-                    maximum: {unit: 'business_day', value: 2},
-                  },
-                },
-              },
-          ],
-        line_items: transformedItems,
-        mode: 'payment',
-        success_url: `${process.env.HOST_WEB}/orders`,
-        cancel_url: `${process.env.HOST_WEB}`,
-        metadata: {
-            email: body.email,
-            images: JSON.stringify(body.items.map(item => item.image))
-        }
+      payment_method_types: ['card'],
+      shipping_options: [
+        {
+          shipping_rate_data: {
+            type: 'fixed_amount',
+            fixed_amount: { amount: 0, currency: 'usd' },
+            display_name: 'Delivery Gratis',
+            delivery_estimate: {
+              minimum: { unit: 'business_day', value: 5 },
+              maximum: { unit: 'business_day', value: 7 },
+            },
+          },
+        },
+        {
+          shipping_rate_data: {
+            type: 'fixed_amount',
+            fixed_amount: { amount: 1500, currency: 'usd' },
+            display_name: 'Delivery Normal',
+            delivery_estimate: {
+              minimum: { unit: 'business_day', value: 1 },
+              maximum: { unit: 'business_day', value: 2 },
+            },
+          },
+        },
+      ],
+      line_items: transformedItems,
+      mode: 'payment',
+      success_url: `${process.env.HOST_WEB}/orders`,
+      cancel_url: `${process.env.HOST_WEB}`,
+      metadata: {
+        email: body.email,
+        images: JSON.stringify(body.items.map((item) => item.imgUrl)),
+      },
     });
 
-    
+    if (body.movil) {
+      const setupIntent = await this.stripe.setupIntents.create({
+        customer: session?.data?.id,
+        payment_method_types: ['bancontact', 'card', 'ideal'],
+      });
+      session.client_secret = setupIntent;
+    }
 
-    const setupIntent = await this.stripe.setupIntents.create({
-      customer: session?.data?.id,
-      payment_method_types: ['bancontact', 'card', 'ideal'],
-    });
-
-    session.client_secret = setupIntent
-
-    return session
+    return session;
   }
-
 
   async hooksStripe(body, header) {
     // const requestBuffer = await buffer(body);
     const payload = JSON.stringify(body, null, 2);
 
-    const sig = header;
+    const header2 = this.stripe.webhooks.generateTestHeaderString({
+      payload: payload,
+      secret: this.endpointSecret
+    });
 
-    console.log('🧐',body);
-    
-    
     let event;
 
     //Obtengo mis eventos del webhook
     try {
-        event = this.stripe.webhooks.constructEvent(payload, sig, this.endpointSecret)
+      event = this.stripe.webhooks.constructEvent(
+        payload,
+        header2,
+        this.endpointSecret,
+      );
     } catch (err) {
-        console.log("ERROR", err.message);
+      console.log('ERROR', err.message);
     }
+    if (event.type === 'checkout.session.completed') {
+      console.log('orden completado, guardando orden...');
+      const session = event.data.object;
+      console.log('📊', session);
+          
+          const user = await this.prisma.user.findUnique({
+            where:{
+              email: session.metadata.email
+            }
+          }) 
 
-    // const saveOrder = await await this.prisma.orders.create({
-    //   data: { amount: body.amount, amountShipping: body.amountShipping, id: body.id, images: },
-    // });
-    // return saveOrder
+          console.log('🔎 user', user);
+          
+
+          const saveOrder = await this.prisma.orders.create({
+          data: { 
+            amount: session.amount_total, 
+            amountShipping: session.total_details.amount_shipping, 
+            userId: user.id,
+            images: JSON.parse(session.metadata.images)},
+        });
+        return saveOrder
+    }
+    
   }
-
-
 }

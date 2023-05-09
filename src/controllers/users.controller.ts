@@ -56,10 +56,23 @@ export class UsersController {
   ) {
     const user = await this.usersService.findUser(email);
 
-    if (!user) return null;
     const passwordValid = await bcrypt.compare(password, user.password);
+    
     if (!user) {
-      throw new NotAcceptableException('No se encontró el usuario');
+      return res.status(HttpStatus.NOT_FOUND).json({
+        status: 404,
+        message: 'usuario no existe',
+        data: false,
+      });
+    }
+
+    if (!passwordValid) {
+      console.log(passwordValid);
+      return res.status(HttpStatus.NOT_FOUND).json({
+        status: 301,
+        message: 'Clave invalida',
+        data: false,
+      });
     }
     if (user && passwordValid) {
       return res.status(HttpStatus.OK).json({
@@ -68,11 +81,6 @@ export class UsersController {
       });
     }
 
-    if (!user)
-      return res.status(HttpStatus.NOT_FOUND).json({
-        status: 404,
-        message: 'usuario no existe',
-        data: false,
-      });
+   
   }
 }
