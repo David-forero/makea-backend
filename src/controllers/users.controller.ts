@@ -77,6 +77,7 @@ export class UsersController {
       return res.status(HttpStatus.OK).json({
         message: 'Successfully!',
         data: user,
+        status: 200
       });
     }
 

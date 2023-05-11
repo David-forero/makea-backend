@@ -39,9 +39,15 @@ export class OrdersController {
     })
   }
 
-  @Post('/get-orders')
-  async getOrders(@Res() res, ){
+  @Post('/create-order-form-movil')
+  async createOrderMovilR(@Res() res, @Body() body){
+    const order = await this.orderService.createOrderMovil(body)
 
+    res.status(HttpStatus.OK).json({
+      data: order,
+      status: 200,
+      message: 'success'
+    })
   }
 }
 
