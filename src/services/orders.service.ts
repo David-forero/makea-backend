@@ -15,7 +15,6 @@ export class OrdersService {
   }
 
   async checkOutWithStripe(body: any): Promise<any> {
-    console.log(body);
 
     const transformedItems = body.items.map((item) => ({
       quantity: 1,
@@ -97,16 +96,12 @@ export class OrdersService {
       console.log('ERROR', err.message);
     }
     if (event.type === 'checkout.session.completed') {
-      console.log('orden completado, guardando orden...');
       const session = event.data.object;
-
       const user = await this.prisma.user.findUnique({
         where: {
           email: session.metadata.email,
         },
       });
-
-      console.log('🔎 user', user);
 
       const saveOrder = await this.prisma.orders.create({
         data: {
@@ -121,7 +116,6 @@ export class OrdersService {
   }
 
   async getOrdersUser(userId: string) {
-    console.log('👉️', userId);
 
     const order = await this.prisma.orders.findMany({
       where: { userId },
@@ -129,4 +123,28 @@ export class OrdersService {
 
     return order;
   }
+
+  async createOrderMovil(body){
+    console.log(body);
+    
+      const user = await this.prisma.user.findUnique({
+        where: {
+          email: body.email,
+        },
+      });
+
+      const saveOrder = await this.prisma.orders.create({
+        data: {
+          amount: body.total,
+          amountShipping: 15.00,
+          userId: user.id,
+          images: body.items.map((item) => item.imgUrl),
+        },
+      });
+      return saveOrder;
+return
+
+  }
+
+
 }
